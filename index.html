@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>世界唐氏症日｜不一樣剛剛好</title>
+  <meta name="description" content="3/21 世界唐氏症日｜掃碼參與，生成你的不一樣卡片，分享支持共融。" />
+  <style>
+    :root{--b:#0b0f19;--g:#f5f7fb;--w:#fff;--p:#5b7cfa;--r:18px}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;background:var(--g);color:var(--b)}
+    .wrap{max-width:720px;margin:0 auto;padding:18px}
+    .card{background:var(--w);border-radius:var(--r);box-shadow:0 10px 25px rgba(0,0,0,.06);padding:16px;margin:12px 0}
+    h1{font-size:20px;margin:0 0 6px}
+    .sub{opacity:.8;margin:0 0 10px;line-height:1.4}
+    .btns{display:flex;flex-wrap:wrap;gap:10px}
+    button{border:0;border-radius:999px;padding:10px 14px;background:#eef2ff;color:#1a2b7a;font-weight:650;cursor:pointer}
+    button:hover{filter:brightness(.98)}
+    .primary{background:var(--p);color:#fff}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+    .left{flex:1;min-width:260px}
+    .right{flex:1;min-width:260px}
+    canvas{width:100%;height:auto;border-radius:14px;background:#fff}
+    textarea{width:100%;min-height:96px;border-radius:12px;border:1px solid #e6e9f2;padding:10px;font-size:14px;line-height:1.4}
+    .small{font-size:12px;opacity:.7;line-height:1.4}
+    .footer{margin-top:10px}
+    .pill{display:inline-block;background:#111827;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="pill">3/21 世界唐氏症日</div>
+      <h1>不一樣剛剛好｜北捷彩繪列車</h1>
+      <p class="sub">選一個「今天的我」，立刻生成分享卡片（可下載）＋文案（可複製）。</p>
+
+      <div class="btns" id="traitBtns"></div>
+      <p class="small">提示：下載圖片後，貼到 IG/FB 限動，再貼上複製的文案就完成啦！</p>
+    </div>
+
+    <div class="row">
+      <div class="left card">
+        <h1>你的分享卡</h1>
+        <canvas id="c" width="1080" height="1920"></canvas>
+        <div class="btns footer">
+          <button class="primary" id="downloadBtn">下載圖片（PNG）</button>
+          <button id="regenBtn">重新生成</button>
+        </div>
+        <p class="small">建議發限動尺寸：1080×1920（本圖即為此尺寸）。</p>
+      </div>
+
+      <div class="right card">
+        <h1>分享文案</h1>
+        <textarea id="caption" readonly></textarea>
+        <div class="btns footer">
+          <button class="primary" id="copyBtn">複製文案</button>
+          <button id="openIG">打開 IG（提示）</button>
+        </div>
+        <p class="small">
+          ※ iPhone/Android 對「一鍵直開限動且自動帶圖」限制很多，所以最穩方式是：<br/>
+          ①先下載圖片 → ②去 IG/FB 限動上傳 → ③貼上複製文案。
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1>更多支持</h1>
+      <p class="sub">想了解唐氏症與共融？也歡迎追蹤我們、把這台列車分享給更多人。</p>
+      <p class="small">（此區你可以放官網/活動頁/捐款頁連結。為了示範我先留白）</p>
+    </div>
+  </div>
+
+<script>
+  // 你可以改成活動主題字、基金會名稱、Hashtag
+  const BRAND = "唐氏症基金會";
+  const TAGS = ["#321世界唐氏症日", "#不一樣剛剛好", "#共融同行"];
+  const TRAITS = [
+    "我很愛笑", "我想很多", "我很溫柔", "我很有耐心",
+    "我喜歡畫畫", "我很有創意", "我很愛聊天", "我很努力",
+    "我走自己的步調", "我很會照顧人"
+  ];
+
+  const elBtns = document.getElementById("traitBtns");
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const captionEl = document.getElementById("caption");
+
+  let currentTrait = TRAITS[0];
+
+  // 建立按鈕
+  TRAITS.forEach(t => {
+    const b = document.createElement("button");
+    b.textContent = t;
+    b.onclick = () => { currentTrait = t; renderAll(); };
+    elBtns.appendChild(b);
+  });
+
+  document.getElementById("regenBtn").onclick = renderAll;
+
+  document.getElementById("downloadBtn").onclick = () => {
+    const a = document.createElement("a");
+    a.download = "321-不一樣剛剛好.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  };
+
+  document.getElementById("copyBtn").onclick = async () => {
+    try{
+      await navigator.clipboard.writeText(captionEl.value);
+      alert("已複製！去 IG/FB 限動貼上就可以了～");
+    }catch(e){
+      // 退而求其次：選取文字
+      captionEl.focus();
+      captionEl.select();
+      alert("請手動複製（長按/Ctrl+C）");
+    }
+  };
+
+  document.getElementById("openIG").onclick = () => {
+    // 無法保證一定會開 App，但至少給引導
+    window.open("https://www.instagram.com/", "_blank");
+  };
+
+  // 生成分享文案
+  function buildCaption(){
+    const line1 = `我今天的「不一樣」是：${currentTrait}。`;
+    const line2 = `在北捷遇見了世界唐氏症日彩繪列車，提醒我：不一樣剛剛好。`;
+    const line3 = `${BRAND}｜一起支持共融。`;
+    return [line1, line2, line3, "", TAGS.join(" ")].join("\n");
+  }
+
+  // 畫一張 1080x1920 的限動圖
+  function drawCard(){
+    const W = canvas.width, H = canvas.height;
+
+    // 背景（簡單漸層）
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(1, "#eef2ff");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // 裝飾幾何（象徵多元）
+    for(let i=0;i<18;i++){
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = i%2? "#5b7cfa" : "#111827";
+      const x = Math.random()*W;
+      const y = Math.random()*H;
+      const r = 24 + Math.random()*80;
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 白色主卡片
+    const pad = 70;
+    roundRect(ctx, pad, 260, W-pad*2, 980, 40, true, false);
+
+    // 標題
+    ctx.fillStyle = "#111827";
+    ctx.font = "700 64px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText("不一樣剛剛好", pad+60, 390);
+
+    ctx.font = "600 38px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillStyle = "#334155";
+    ctx.fillText("3/21 世界唐氏症日", pad+60, 455);
+
+    // Trait 強調
+    roundRect(ctx, pad+60, 520, W-pad*2-120, 150, 28, true, false, "#eef2ff");
+    ctx.fillStyle = "#1d2b74";
+    ctx.font = "800 60px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    wrapText(ctx, `我今天的「不一樣」是：${currentTrait}`, pad+90, 615, W-pad*2-180, 70);
+
+    // 小字敘述
+    ctx.fillStyle = "#475569";
+    ctx.font = "500 36px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    wrapText(ctx,
+      "在北捷彩繪列車上，遇見每一種不同。\n不比較、更靠近。",
+      pad+60, 735, W-pad*2-120, 52);
+
+    // 底部資訊
+    ctx.fillStyle = "#0b0f19";
+    ctx.font = "650 34px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText(BRAND, pad+60, 1160);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "500 30px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText(TAGS.join(" "), pad+60, 1210);
+
+    // QR 提示（不放真正 QR，避免影響掃碼；你要放也可以）
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "500 26px system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText("掃碼生成你的分享卡", pad+60, 1260);
+
+    // 底部留白做視覺呼吸
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(0, H-240, W, 240);
+    ctx.globalAlpha = 1;
+  }
+
+  function renderAll(){
+    captionEl.value = buildCaption();
+    // 清空畫布（避免殘影）
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawCard();
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke, fillColor){
+    if (fillColor) ctx.fillStyle = fillColor; else ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+    const lines = text.split("\n");
+    let offsetY = 0;
+    for(const line of lines){
+      const words = line.split("");
+      let current = "";
+      for(const ch of words){
+        const test = current + ch;
+        if(ctx.measureText(test).width > maxWidth){
+          ctx.fillText(current, x, y + offsetY);
+          current = ch;
+          offsetY += lineHeight;
+        } else {
+          current = test;
+        }
+      }
+      ctx.fillText(current, x, y + offsetY);
+      offsetY += lineHeight;
+    }
+  }
+
+  // 初始顯示
+  renderAll();
+</script>
+</body>
+</html>
